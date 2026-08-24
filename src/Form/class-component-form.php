@@ -7,6 +7,8 @@
  * @since 0.0.1
  */
 
+declare( strict_types=1 );
+
 namespace AcfComponentManager\Form;
 
 // If called directly, short.
@@ -23,8 +25,10 @@ class ComponentForm extends FormBase {
 	 * Provides the ComponentForm form.
 	 *
 	 * @param array $components An array of theme components.
+	 *
+	 * @return void
 	 */
-	public function form( array $components ) {
+	public function form( array $components ): void {
 		?>
 		<form method="post" action="<?php print $this->get_form_url(); ?>">
 			<?php wp_nonce_field( 'acf_component_manager', 'save' ); ?>
@@ -49,6 +53,7 @@ class ComponentForm extends FormBase {
 					<th><?php print __( 'Component source', 'acf-component-manager' ); ?></th>
 					<th><?php print __( 'File name', 'acf-component-manager' ); ?></th>
 					<th><?php print __( 'Key', 'acf-component-manager' ); ?></th>
+					<th><?php print __( 'Auto-sync', 'acf-component-manager' ); ?></th>
 					<th><?php print __( 'Enabled', 'acf-component-manager' ); ?></th>
 				</tr>
 				</thead>
@@ -76,6 +81,11 @@ class ComponentForm extends FormBase {
 								type="hidden"
 								name="source_name[<?php print $component_properties['hash']; ?>]"
 								value="<?php print $component_properties['source_name']; ?>"
+							>
+							<input
+								type="hidden"
+								name="modified[<?php print $component_properties['hash'] ?? ''; ?>"
+								value="<?php print $component_properties['modified'] ?? ''; ?>"
 							>
 						</td>
 						<?php
@@ -108,6 +118,19 @@ class ComponentForm extends FormBase {
 										>
 										<?php print $component_properties['files'][0]['key']; ?>
 									</td>
+									<td>
+										<input
+										   type="checkbox"
+										   name="auto_sync[<?php print $component_properties['hash']; ?>]"
+										   id="<?php print $component_properties['hash']; ?>-autosync"
+										   value="1"
+										   <?php isset( $component_properties['auto_sync'] ) ? checked( $component_properties['auto_sync'], true ) : print ''; ?>
+										>
+										<label for="<?php print $component_properties['hash']; ?>-autosync">
+											   <?php _e( 'Auto sync', 'acf-component-manager' ); ?>
+										</label>
+									</td>
+
 									<td>
 										<input
 											type="checkbox"

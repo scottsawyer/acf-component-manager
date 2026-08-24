@@ -7,7 +7,7 @@
  * @wordpress-plugin
  * Plugin Name: ACF Component Manager
  * Description: Manages ACF based components.
- * Version: 0.0.8
+ * Version: 0.0.9
  * Author: Scott Sawyer
  * Text Domain: acf-component-manager
  */
@@ -19,7 +19,7 @@ if ( ! defined( 'WPINC' ) ) {
 /**
  * Plugin version.
  */
-define( 'ACF_COMPONENT_MANAGER_VERSION', '0.0.8' );
+define( 'ACF_COMPONENT_MANAGER_VERSION', '0.0.9' );
 
 /**
  * Minimum WordPress version.
@@ -58,7 +58,7 @@ define( 'SOURCES_OPTION_NAME', 'acf-component-manager-sources' );
  */
 define( 'NOTICES_OPTION_NAME', 'acf-component-manager-notices' );
 
-require_once 'includes/autoloader.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/autoloader.php';
 
 /**
  * Activation.
@@ -80,16 +80,19 @@ register_activation_hook( ACF_COMPONENT_MANAGER_FILE, 'acf_component_manager_act
 register_deactivation_hook( ACF_COMPONENT_MANAGER_FILE, 'acf_component_manager_deactivate' );
 
 /**
- * The core plugin class.
- */
-require ACF_COMPONENT_MANAGER_PATH . 'src/class-acf-component-manager.php';
-
-/**
  * Begin execution.
  */
 function acf_component_manager_run() {
+	/**
+	 * The core plugin class.
+	 */
+	require ACF_COMPONENT_MANAGER_PATH . 'src/class-acf-component-manager.php';
+
 	$plugin = new AcfComponentManager\AcfComponentManager();
 	$plugin->run();
 }
 
-acf_component_manager_run();
+add_action( 'plugins_loaded', function() {
+	acf_component_manager_run();
+} );
+

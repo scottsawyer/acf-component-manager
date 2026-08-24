@@ -7,6 +7,8 @@
  * @since 0.0.1
  */
 
+declare( strict_types=1 );
+
 namespace AcfComponentManager\View;
 
 // If called directly, short.
@@ -25,8 +27,10 @@ class ComponentView extends ViewBase {
 	 * @param array $managed_components    An array of theme components.
 	 * @param array $unmanaged_components  An array of components not managed.
 	 * @param array $missing_components    An array of database components not in code.
+	 *
+	 * @return void
 	 */
-	public function view( array $managed_components, array $unmanaged_components, array $missing_components ) {
+	public function view( array $managed_components, array $unmanaged_components, array $missing_components ): void {
 
 		if ( empty( $managed_components ) && empty( $unmanaged_components ) ) {
 			print '<p>' . __( 'No components found.', 'acf-component-manager' ) . '</p>';
@@ -41,6 +45,7 @@ class ComponentView extends ViewBase {
 
 		if ( ! empty( $managed_components ) ) {
 			print '<h3>' . __( 'Managed components', 'acf-component-manager' ) . '</h3>';
+			print '<p>' . __( 'Components currently managed.', 'acf-component-manager' ) . '</p>';
 			?>
 			<table class="widefat">
 				<thead>
@@ -56,6 +61,12 @@ class ComponentView extends ViewBase {
 					</th>
 					<th>
 						<h3><?php print __( 'Field group key', 'acf-component-manager' ); ?></h3>
+					</th>
+					<th>
+						<h3><?php print __( 'Auto sync', 'acf-component-manager' ); ?></h3>
+					</th>
+					<th>
+						<h3><?php print __( 'Sync date', 'acf-component-manager' ); ?></h3>
 					</th>
 					<th>
 						<h3><?php print __( 'Enabled', 'acf-component-manager' ); ?></h3>
@@ -78,12 +89,16 @@ class ComponentView extends ViewBase {
 						<?php print $component['key']; ?>
 					</td>
 					<td>
+
+					</td>
+					<td>
 						<?php
-						if ( $component['enabled'] ) {
-							print 'Yes';
-						} else {
-							print 'No';
-						}
+						print $component['auto_sync'] ? __( 'Enabled', 'acf-component-manager' ) : '';
+						?>
+					</td>
+					<td>
+						<?php
+						print $component['enabled'] ? __( 'Enabled', 'acf-component-manager' ) : '';
 						?>
 					</td>
 				</tr>
@@ -95,6 +110,7 @@ class ComponentView extends ViewBase {
 
 		if ( ! empty( $unmanaged_components ) ) {
 			print '<h3>' . __( 'Unmanaged components', 'acf-component-manager' ) . '</h3>';
+			print '<p>' . __( 'Components discovered in a configured source but not currently being managed.  Typically resolved by saving the \'Edit components\' form', 'acf-component-manager' ) . '</p>';
 			?>
 			<table class="widefat">
 				<thead>
@@ -121,6 +137,7 @@ class ComponentView extends ViewBase {
 
 		if ( ! empty( $missing_components ) ) {
 			print '<h3>' . __( 'Missing components', 'acf-component-manager' ) . '</h3>';
+			print '<p>' . __( 'ACF components in the database but not found in the configured sources.', 'acf-component-manager' ) . '</p>';
 			?>
 			<table class="widefat">
 				<thead>
@@ -133,6 +150,9 @@ class ComponentView extends ViewBase {
 					</th>
 					<th>
 						<h3><?php print __( 'Status', 'acf-component-manager' ); ?></h3>
+					</th>
+					<th>
+						<h3><?php print __( 'Modified', 'acf-component-manager' ); ?></h3>
 					</th>
 					<th>
 						<h3><?php print __( 'Post id', 'acf-component-manager' ); ?></h3>
@@ -150,6 +170,9 @@ class ComponentView extends ViewBase {
 					</td>
 					<td>
 						<?php print $component['status']; ?>
+					</td>
+					<td>
+						<?php print $component['modified']; ?>
 					</td>
 					<td>
 						<?php print $component['id']; ?>

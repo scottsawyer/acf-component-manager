@@ -5,6 +5,8 @@
  * @package acf-component-manager
  */
 
+declare( strict_types=1 );
+
 namespace AcfComponentManager\Controller;
 
 // If this file is called directly, short.
@@ -14,7 +16,10 @@ if ( ! defined( 'WPINC' ) ) {
 
 use AcfComponentManager\Form\ComponentForm;
 use AcfComponentManager\Form\ComponentsExportForm;
+use AcfComponentManager\Service\AcfService;
+use AcfComponentManager\Service\ComponentService;
 use AcfComponentManager\Service\SourceService;
+use AcfComponentManager\Service\SyncService;
 use AcfComponentManager\View\ComponentView;
 use AcfComponentManager\NoticeManager;
 
@@ -31,6 +36,22 @@ class ComponentManager {
 	protected NoticeManager $noticeManager;
 
 	/**
+	 * AcfComponentManager\Service\AcfService definition.
+	 *
+	 * @since 0.0.9
+	 * @var \AcfComponentManager\Service\AcfService
+	 */
+	protected AcfService $acfService;
+
+	/**
+	 * AcfComponentManager\Service\ComponentService definition.
+	 *
+	 * @since 0.0.9
+	 * @var \AcfComponentManager\Service\ComponentService
+	 */
+	protected ComponentService $componentService;
+
+	/**
 	 * AcfComponentManager\Service\SourceService definition.
 	 *
 	 * @since 0.0.7
@@ -39,12 +60,20 @@ class ComponentManager {
 	protected SourceService $sourceService;
 
 	/**
+	 * AcfComponentManager\Service\SyncService definition.
+	 *
+	 * @since 0.0.9
+	 * @var \AcfComponentManager\Service\SyncService
+	 */
+	protected SyncService $syncService;
+
+	/**
 	 * File pattern.
 	 * "$settings['active_theme_directory']}/{$settings['components_directory']}{$component['path']}/{$settings['file_directory']}/"
 	 *
 	 * @var string
 	 */
-	protected $file_pattern = '%1$s/%2$s/%3$s/%4$s/';
+	protected string $file_pattern = '%1$s/%2$s/%3$s/%4$s/';
 
 	/**
 	 * Initialize the class and set its properties.
@@ -57,10 +86,15 @@ class ComponentManager {
 
 	/**
 	 * Load dependencies.
+	 *
+	 * @return void
 	 */
-	protected function load_dependencies() {
+	protected function load_dependencies(): void {
 		$this->noticeManager = new NoticeManager();
+		$this->acfService = new acfService();
 		$this->sourceService = new SourceService();
+		$this->componentService = new ComponentService();
+		$this->syncService = new SyncService();
 	}
 
 	/**
@@ -70,15 +104,17 @@ class ComponentManager {
 	 *
 	 * @param string $action   The current action.
 	 * @param string $form_url The form URL.
+	 *
+	 * @return void
 	 */
-	public function render_page( string $action = 'view', string $form_url = '' ) {
+	public function render_page( string $action = 'view', string $form_url = '' ): void {
 		print '<h2>' . __( 'Manage Components', 'acf-component-manager' ) . '</h2>';
 
 		switch ( $action ) {
 			case 'view':
 				$view = new ComponentView( $form_url );
-				$discovered_components = $this->get_discovered_components();
-				$stored_components = $this->get_stored_components();
+				$discovered_components = $this->componentService->get_discovered_components();
+				$stored_components = $this->componentService->get_stored_components();
 				$new_components = array();
 				if ( ! empty( $discovered_components ) ) {
 
@@ -90,14 +126,14 @@ class ComponentManager {
 						}
 					);
 				}
-				$missing_components = $this->get_missing_components( $this->get_stored_components() );
+				$missing_components = $this->componentService->get_missing_components( $this->componentService->get_stored_components() );
 
 				$view->view( $stored_components, $new_components, $missing_components );
 				break;
 
 			case 'edit':
 				$form = new ComponentForm( $form_url );
-				$discovered_components = $this->get_discovered_components();
+				$discovered_components = $this->componentService->get_discovered_components();
 				$form_components = array();
 				if ( ! empty( $discovered_components ) ) {
 					foreach ( $discovered_components as $discovered_component ) {
@@ -106,10 +142,11 @@ class ComponentManager {
 							$discovered_component['files'] = $files;
 						}
 
-						$discovered_component['stored'] = $this->get_stored_component( $discovered_component['hash'] );
+						$discovered_component['stored'] = $this->componentService->get_stored_component( $discovered_component['hash'] );
 						$form_components[ $discovered_component['hash'] ] = $discovered_component;
 					}
 				}
+
 				$form->form( $form_components );
 				break;
 		}
@@ -117,9 +154,11 @@ class ComponentManager {
 
 	/**
 	 * Dashboard.
+	 *
+	 * @return void
 	 */
-	public function dashboard() {
-		$enabled_components = $this->get_enabled_components();
+	public function dashboard(): void {
+		$enabled_components = $this->componentService->get_enabled_components();
 		$view = new ComponentView( '' );
 		$view->dashboard( $enabled_components );
 	}
@@ -129,8 +168,10 @@ class ComponentManager {
 	 *
 	 * @param string $action    The current action.
 	 * @param string $form_url  The form URL.
+	 *
+	 * @return void
 	 */
-	public function tools( string $action, string $form_url ) {
+	public function tools( string $action, string $form_url ): void {
 		$export_form = new ComponentsExportForm( $form_url );
 		$export_form->form();
 	}
@@ -153,30 +194,47 @@ class ComponentManager {
 	 * @since 0.0.1
 	 *
 	 * @param array $form_data The form data array.
+	 *
+	 * @return void
 	 */
-	public function save( array $form_data ) {
-		$discovered_components = $this->get_discovered_components();
-		$save_components = array();
+	public function save( array $form_data ): void {
+		$discovered_components = $this->componentService->get_discovered_components();
+
 		if ( ! empty( $discovered_components ) ) {
+			$merged_components = array();
 			foreach ( $discovered_components as $component_properties ) {
 				$hash = $component_properties['hash'];
 				if ( ! isset( $form_data['file'][ $hash ] ) || ! isset( $form_data['key'][ $hash ] ) ) {
 					continue;
 				}
-				$save_components[ $hash ] = $component_properties;
-				$save_components[ $hash ]['file'] = $form_data['file'][ $hash ];
-				$save_components[ $hash ]['key'] = $form_data['key'][ $hash ];
-				$save_components[ $hash ]['source_id'] = $form_data['source_id'][ $hash ];
-				$save_components[ $hash ]['source_name'] = $form_data['source_name'][ $hash ];
-				$save_components[ $hash ]['path'] = $form_data['path'][ $hash ];
+				// @todo Validation.
+
+				$save_components = array(
+					'file' => $form_data['file'][ $hash ],
+					'key' => $form_data['key'][ $hash ],
+					'source_id' => $form_data['source_id'][ $hash ],
+					'source_name' => $form_data['source_name'][ $hash ],
+					'path' => $form_data['path'][ $hash ],
+					'modified' => $form_data['modified'][ $hash ] ?? '',
+
+				);
 
 				if ( isset( $form_data['enabled'][ $hash ] ) ) {
-					$save_components[ $hash ]['enabled'] = $form_data['enabled'][ $hash ];
+					$save_components['enabled'] = $form_data['enabled'][ $hash ];
 				} else {
-					$save_components[ $hash ]['enabled'] = false;
+					$save_components['enabled'] = false;
 				}
+				if ( isset( $form_data['auto_sync'][ $hash ] ) ) {
+					$save_components['auto_sync'] = (bool) $form_data['auto_sync'][ $hash ];
+				} else {
+					$save_components['auto_sync'] = false;
+				}
+				$save_components['file_path'] = $this->get_component_acf_file_path( $save_components );
+
+				$merged_components[ $hash ] = array_merge( $save_components, $component_properties );
+
 			}
-			$this->set_stored_components( $save_components );
+			$this->componentService->set_stored_components( $merged_components );
 		}
 	}
 
@@ -187,9 +245,11 @@ class ComponentManager {
 	 * @param array $export_options An array of export options.
 	 *
 	 * @see \AcfComponentManager\Admin::export().
+	 *
+	 * @return void
 	 */
-	public function export( array $export_options ) {
-		$components = $this->get_stored_components();
+	public function export( array $export_options ): void {
+		$components = $this->componentService->get_stored_components();
 
 		header( 'Content-Type: application/json' );
 		header( 'Content-Disposition: attachment; filename=managed-components.json' );
@@ -206,37 +266,13 @@ class ComponentManager {
 	 *
 	 * @return array $settings
 	 */
-	private function get_settings() {
+	private function get_settings(): array {
 		$settings = array();
 		$stored_settings = get_option( SETTINGS_OPTION_NAME );
 		if ( $stored_settings ) {
 			$settings = $stored_settings;
 		}
 		return $settings;
-	}
-
-	/**
-	 * Get missing components.
-	 *
-	 * @since 0.0.1
-	 *
-	 * @param array $managed_components The components currently managed.
-	 *
-	 * @return array Array of components that only exist in the database.
-	 */
-	public function get_missing_components( array $managed_components ) {
-
-		$database_components = $this->get_acf_posts();
-		if ( empty( $managed_components ) ) {
-			return $database_components;
-		}
-
-		return array_filter(
-			$database_components,
-			function ( $item ) use ( $managed_components ) {
-				return ! in_array( $item['key'], array_column( $managed_components, 'key' ) );
-			}
-		);
 	}
 
 	/**
@@ -283,49 +319,6 @@ class ComponentManager {
 	}
 
 	/**
-	 * Discover components.
-	 *
-	 * Discovers components in the file system based on 'sources'.
-	 *
-	 * @since 0.0.7
-	 *
-	 * @return array The discovered components.
-	 */
-	public function get_discovered_components(): array {
-		$components = array();
-		$sources = $this->sourceService->get_sources();
-		if ( empty( $sources ) ) {
-			return $components;
-		}
-		foreach ( $sources as $source ) {
-			$path_parts = array(
-				$source['source_path'],
-				$source['components_directory'],
-			);
-
-			$path_parts = implode( '/', $path_parts );
-
-			foreach ( glob( "{$path_parts}/*/functions.php" ) as $functions_file ) {
-				$component = get_file_data( $functions_file, array( 'Component' => 'Component' ) );
-				// Get all eligible components.  Components should be in the designated
-				// directory and include the File Header 'Component'.
-				if ( ! empty( $component['Component'] ) ) {
-					$component_path = str_replace( '/functions.php', '', $functions_file );
-
-					$components[] = array(
-						'source_id' => $source['source_id'],
-						'source_name' => $source['source_name'],
-						'name' => $component['Component'],
-						'path' => $component_path,
-						'hash' => wp_hash( $component_path, '' ),
-					);
-				}
-			}
-		}
-		 return $components;
-	}
-
-	/**
 	 * Get ACF json files from components.
 	 *
 	 * @since 0.0.7
@@ -336,13 +329,11 @@ class ComponentManager {
 	public function get_acf_files( array $component ): array {
 		$acf_files = array();
 
-		$path_pattern = $this->get_component_acf_file_path( $component );
+		$path_pattern = $this->get_component_acf_file_path( $component, false );
 		foreach ( glob( "{$path_pattern}*.json" ) as $files ) {
 
-			$loaded_file = file_get_contents( $files );
-			if ( $loaded_file ) {
-
-				$json = json_decode( $loaded_file, true );
+			$json = $this->acfService->get_acf_json( $files );
+			if ( $json ) {
 
 				// Synced theme components have a different structure.
 				$key = $this->get_key_from_json( $json );
@@ -356,6 +347,7 @@ class ComponentManager {
 						'file_name' => $file_name,
 						'path' => $component['path'],
 						'key' => $key,
+						'modified' => $json['modified'] ?? null,
 					);
 				}
 			}
@@ -370,18 +362,18 @@ class ComponentManager {
 	 *
 	 * @return array
 	 *   An array of discovered ACF files.
+	 *
+	 * @deprecated since 0.0.9
 	 */
 	public function get_theme_acf_files( array $component ): array {
 		$acf_files = array();
 
-		$path_pattern = $this->get_component_acf_file_path( $component );
+		$path_pattern = $this->get_component_acf_file_path( $component, false );
 
 		foreach ( glob( "{$path_pattern}*.json" ) as $files ) {
 
-			$loaded_file = file_get_contents( $files );
-			if ( $loaded_file ) {
-
-				$json = json_decode( $loaded_file, true );
+			$json = $this->acfService->get_acf_json( $files );
+			if ( $json ) {
 
 				// Synced theme components have a different structure.
 				$key = $this->get_key_from_json( $json );
@@ -395,6 +387,7 @@ class ComponentManager {
 						'file_name' => $file_name,
 						'path' => $component['path'],
 						'key' => $key,
+						'modified' => $json['modified'] ?? null,
 					);
 				}
 			}
@@ -402,221 +395,17 @@ class ComponentManager {
 		return $acf_files;
 	}
 
-	/**
-	 * Set stored components.
-	 *
-	 * @since 0.0.1
-	 *
-	 * @param array $components The components to store.
-	 */
-	public function set_stored_components( array $components ) {
-		update_option( STORED_COMPONENTS_OPTION_NAME, serialize( $components ) );
-	}
 
-	/**
-	 * Get stored components.
-	 *
-	 * @return array
-	 *   The components array.
-	 */
-	public function get_stored_components(): array {
-		$components = array();
-
-		$stored_components = get_option( STORED_COMPONENTS_OPTION_NAME );
-
-		if ( $stored_components ) {
-			$components = unserialize( $stored_components );
-		}
-		return $components;
-	}
-
-	/**
-	 * Get stored component.
-	 *
-	 * @since 0.0.1
-	 * @param string $component_hash The component hash.
-	 *
-	 * @return array
-	 *   The stored component.
-	 */
-	public function get_stored_component( string $component_hash ): array {
-		$stored_component = array();
-
-		$stored_components = $this->get_stored_components();
-		if ( ! empty( $stored_components ) ) {
-			foreach ( $stored_components as $hash => $stored ) {
-				if ( $hash == $component_hash ) {
-					$stored_component = $stored;
-				}
-			}
-		}
-		return $stored_component;
-	}
-
-	/**
-	 * Get enabled components.
-	 *
-	 * @since 0.0.1
-	 *
-	 * @return array
-	 *   An array of enabled components.
-	 */
-	public function get_enabled_components(): array {
-		$enabled_components = array();
-
-		$stored_components = $this->get_stored_components();
-		if ( ! empty( $stored_components ) ) {
-			foreach ( $stored_components as $hash => $stored ) {
-				if ( isset( $stored['enabled'] ) && $stored['enabled'] ) {
-					$enabled_components[ $hash ] = $stored;
-				}
-			}
-		}
-
-		return $enabled_components;
-	}
-
-	/**
-	 * Get ACF posts.
-	 *
-	 * Aggregates all ACF posts.
-	 *
-	 * @since 0.0.4
-	 *
-	 * @return array
-	 *   An array of ACF post (field groups, post types, taxonomies, option page)
-	 */
-	public function get_acf_posts(): array {
-		$acf_field_groups = $this->get_acf_field_groups();
-		$acf_post_types = $this->get_acf_post_types();
-		$acf_taxonomies = $this->get_acf_taxonomies();
-		$acf_option_pages = $this->get_acf_option_pages();
-		return array_merge( $acf_field_groups, $acf_post_types, $acf_taxonomies, $acf_option_pages );
-	}
-
-	/**
-	 * Get ACF field groups.
-	 *
-	 * @since 0.0.1
-	 *
-	 * @return array
-	 *   An array of ACF field groups.
-	 */
-	public function get_acf_field_groups(): array {
-		$acf_field_groups = array();
-		$args = array(
-			'post_type' => 'acf-field-group',
-			'posts_per_page' => -1,
-		);
-		$field_group_query = new \WP_Query( $args );
-		if ( $field_group_query->have_posts() ) {
-			$field_group_posts = $field_group_query->get_posts();
-			foreach ( $field_group_posts as $field_group_post ) {
-				$acf_field_groups[] = array(
-					'id' => $field_group_post->ID,
-					'key' => $field_group_post->post_name,
-					'status' => $field_group_post->post_status,
-					'name' => $field_group_post->post_title,
-				);
-			}
-		}
-		return $acf_field_groups;
-	}
-
-	/**
-	 * Get ACF post types.
-	 *
-	 * @since 0.0.4
-	 *
-	 * @return array
-	 *   An array of ACF post types.
-	 */
-	public function get_acf_post_types(): array {
-		$acf_post_types = array();
-		$args = array(
-			'post_type' => 'acf-post-type',
-			'posts_per_page' => -1,
-		);
-		$post_type_query = new \WP_Query( $args );
-		if ( $post_type_query->have_posts() ) {
-			$acf_post_type_posts = $post_type_query->get_posts();
-			foreach ( $acf_post_type_posts as $acf_post_type ) {
-				$acf_post_types[] = array(
-					'id' => $acf_post_type->ID,
-					'key' => $acf_post_type->post_name,
-					'status' => $acf_post_type->post_status,
-					'name' => $acf_post_type->post_title,
-				);
-			}
-		}
-		return $acf_post_types;
-	}
-
-	/**
-	 * Get ACF taxonomies.
-	 *
-	 * @since 0.0.4
-	 *
-	 * @return array
-	 *   An array of ACF taxonomies.
-	 */
-	public function get_acf_taxonomies(): array {
-		$acf_taxonomies = array();
-		$args = array(
-			'post_type' => 'acf-taxonomy',
-			'posts_per_page' => -1,
-		);
-		$taxonomy_query = new \WP_Query( $args );
-		if ( $taxonomy_query->have_posts() ) {
-			$acf_taxonomy_posts = $taxonomy_query->get_posts();
-			foreach ( $acf_taxonomy_posts as $acf_taxonomy ) {
-				$acf_taxonomies[] = array(
-					'id' => $acf_taxonomy->ID,
-					'key' => $acf_taxonomy->post_name,
-					'status' => $acf_taxonomy->post_status,
-					'name' => $acf_taxonomy->post_title,
-				);
-			}
-		}
-		return $acf_taxonomies;
-	}
-
-	/**
-	 * Get ACF option pages.
-	 *
-	 * @since 0.0.4
-	 *
-	 * @return array
-	 *   An array of ACF option pages.
-	 */
-	public function get_acf_option_pages(): array {
-		$acf_option_pages = array();
-		$args = array(
-			'post_type' => 'acf-ui-options-page',
-			'posts_per_page' => -1,
-		);
-		$option_page_query = new \WP_Query( $args );
-		if ( $option_page_query->have_posts() ) {
-			$acf_option_page_posts = $option_page_query->get_posts();
-			foreach ( $acf_option_page_posts as $acf_option_page ) {
-				$acf_option_pages[] = array(
-					'id' => $acf_option_page->ID,
-					'key' => $acf_option_page->post_name,
-					'status' => $acf_option_page->post_status,
-					'name' => $acf_option_page->post_title,
-				);
-			}
-		}
-		return $acf_option_pages;
-	}
 
 	/**
 	 * Load components.
 	 *
 	 * @since 0.0.1
+	 *
+	 * @return void
 	 */
-	public function load_components() {
-		$components = $this->get_stored_components();
+	public function load_components(): void {
+		$components = $this->componentService->get_stored_components();
 
 		if ( ! $this->is_dev_mode() ) {
 			return;
@@ -634,13 +423,15 @@ class ComponentManager {
 					continue;
 				}
 
-				$path_pattern = $this->get_component_acf_file_path( $component );
-				$file_path = $path_pattern . $component['file'];
+				if ( ! isset( $component['file_path'] ) ) {
+					$file_path = $this->get_component_acf_file_path( $component );
+				} else {
+					$file_path = $component['file_path'];
+				}
 
 				try {
-					$file = file_get_contents( $file_path );
-					if ( $file ) {
-						$definition = json_decode( $file, true );
+					$definition = $this->acfService->get_acf_json( $file_path );
+					if ( $definition ) {
 						acf_add_local_field_group( reset( $definition ) );
 					}
 				} catch ( \Exception $e ) {
@@ -650,36 +441,17 @@ class ComponentManager {
 		}
 	}
 
-	/**
-	 * Get post by key.
-	 *
-	 * @param string $post_type The ACF post type.
-	 * @param string $key       The ACF key.
-	 *
-	 * @return mixed
-	 *   The post if found.
-	 */
-	protected function get_post_by_key( string $post_type, string $key ) {
-		$args = array(
-			'post_name' => $key,
-			'post_type' => $post_type,
-		);
-		$posts = get_posts( $args );
-		if ( $posts ) {
-			return reset( $posts );
-		}
-		return false;
-	}
+
 
 	/**
 	 * Get key from JSON.
 	 *
 	 * @param array $json The JSON array.
 	 *
-	 * @return string|false
-	 *   The key.
+	 * @return string|bool
+	 *   The key if found.
 	 */
-	protected function get_key_from_json( array $json ) {
+	protected function get_key_from_json( array $json ): string|bool {
 		if ( isset( $json['key'] ) ) {
 			return $json['key'];
 		}
@@ -693,7 +465,7 @@ class ComponentManager {
 	 *
 	 * @return array The post array.
 	 */
-	protected function map_group_properties_to_post( array $component ) {
+	protected function map_group_properties_to_post( array $component ): array {
 		$group_properties = array();
 		if ( ! isset( $component['key'] ) ) {
 			return $group_properties;
@@ -747,7 +519,7 @@ class ComponentManager {
 	 *
 	 * @see acf/json/save_paths
 	 */
-	public function filter_save_paths( array $paths, $post ) {
+	public function filter_save_paths( array $paths, mixed $post ): array {
 
 		$acf_post = get_post( $post['ID'] );
 		if ( ! $acf_post ) {
@@ -761,14 +533,13 @@ class ComponentManager {
 		}
 
 		if ( $this->is_dev_mode() ) {
-			$enabled_components = $this->get_enabled_components();
+			$enabled_components = $this->componentService->get_enabled_components();
 			if ( ! empty( $enabled_components ) ) {
 				foreach ( $enabled_components as $hash => $component ) {
-					$path_pattern = $this->get_component_acf_file_path( $component );
-					$file_path = $path_pattern . $component['file'];
-					$file = file_get_contents( $file_path );
-					if ( $file ) {
-						$definition = json_decode( $file, true );
+					$path_pattern = $this->get_component_acf_file_path( $component, false );
+					$file_path = $component['file_path'];
+					$definition = $this->acfService->get_acf_json( $file_path );
+					if ( $definition ) {
 
 						// Synced theme components have a different structure.
 						$key = $this->get_key_from_json( $definition );
@@ -796,13 +567,13 @@ class ComponentManager {
 	 *
 	 * @see: acf/settings/load_json
 	 */
-	public function filter_load_paths( array $paths ) {
+	public function filter_load_paths( array $paths ): array {
 
-		$enabled_components = $this->get_enabled_components();
+		$enabled_components = $this->componentService->get_enabled_components();
 
 		if ( ! empty( $enabled_components ) ) {
 			foreach ( $enabled_components as $component ) {
-				$path_pattern = $this->get_component_acf_file_path( $component );
+				$path_pattern = $this->get_component_acf_file_path( $component, false );
 				$paths[] = $path_pattern;
 			}
 		}
@@ -822,7 +593,7 @@ class ComponentManager {
 	 *
 	 * @see acf/json/save_file
 	 */
-	public function filter_save_filename( string $filename, $post, $load_path ) {
+	public function filter_save_filename( string $filename, mixed $post, string $load_path ): string {
 		$settings = $this->get_settings();
 
 		$acf_post = get_post( $post['ID'] );
@@ -841,15 +612,17 @@ class ComponentManager {
 			return $filename;
 		}
 
-		$enabled_components = $this->get_enabled_components();
+		$enabled_components = $this->componentService->get_enabled_components();
 		if ( ! empty( $enabled_components ) ) {
 			foreach ( $enabled_components as $hash => $component ) {
-				$path_pattern = $this->get_component_acf_file_path( $component );
-				$file_path = $path_pattern . $component['file'];
-				$file = file_get_contents( $file_path );
+				if ( ! isset( $component['file_path'] ) ) {
+					$file_path = $this->get_component_acf_file_path( $component );
+				} else {
+					$file_path = $component['file_path'];
+				}
+				$definition = $this->acfService->get_acf_json( $file_path );
 
-				if ( $file ) {
-					$definition = json_decode( $file, true );
+				if ( $definition ) {
 
 					// Synced theme components have a different structure.
 					$key = $this->get_key_from_json( $definition );
@@ -872,12 +645,12 @@ class ComponentManager {
 	 *
 	 * @param string $component_path The path to the component.
 	 *
-	 * @return string|false
+	 * @return string|bool
 	 *   The full path to the component.
 	 *
 	 * @deprecated
 	 */
-	protected function get_component_path( string $component_path ) {
+	protected function get_component_path( string $component_path ): string|bool {
 		$settings = $this->get_settings();
 
 		if ( isset( $settings['active_theme_directory'] ) ) {
@@ -891,11 +664,12 @@ class ComponentManager {
 	 * Get the Component ACF file path from component.
 	 *
 	 * @since 0.0.7
-	 * @param array $component The component.
+	 * @param array $component        The component.
+	 * @param bool  $include_filename True include the file name.
 	 *
-	 * @return string|false The path if it can be determined.
+	 * @return string|bool The path if it can be determined.
 	 */
-	protected function get_component_acf_file_path( array $component ): string|false {
+	protected function get_component_acf_file_path( array $component, bool $include_filename = true ): string|bool {
 		$sources = $this->sourceService->get_sources();
 
 		$sources = array_filter(
@@ -907,8 +681,16 @@ class ComponentManager {
 
 		if ( ! empty( $sources ) ) {
 			$source = reset( $sources );
-			$component_file_path = $source['file_directory'];
-			return trailingslashit( $component['path'] . '/' . $component_file_path );
+			$file_parts = array(
+				$component['path'],
+				$source['file_directory'],
+			);
+
+			if ( $include_filename ) {
+				$file_parts[] = $component['file'];
+				return implode( '/', $file_parts );
+			}
+			return trailingslashit( implode( '/', $file_parts ) );
 		}
 		return false;
 	}
@@ -922,15 +704,26 @@ class ComponentManager {
 	 * @return void
 	 */
 	public function deactivate_component_source( string $source_id ): void {
-		$stored_components = $this->get_stored_components();
+		$stored_components = $this->componentService->get_stored_components();
 		foreach ( $stored_components as $index => $component ) {
 			if ( $component['source_id'] === $source_id ) {
 				$name = $component['name'];
-				$this->noticeManager->add_notice( 'Deactivated component ' . $name );
 				unset( $stored_components[ $index ] );
+				$this->noticeManager->add_notice( 'Deactivated component ' . $name );
 			}
 		}
-		$this->set_stored_components( $stored_components );
+		$this->componentService->set_stored_components( $stored_components );
+	}
+
+	/**
+	 * Syncs components to the database.
+	 *
+	 * @return void
+	 */
+	public function sync_components(): void {
+		$sync_components = $this->componentService->get_auto_sync_components();
+
+		$this->syncService->sync_components( $sync_components );
 	}
 
 	/**
@@ -939,7 +732,7 @@ class ComponentManager {
 	 * @return bool
 	 *   True if we are in dev_mode.
 	 */
-	public function is_dev_mode() {
+	public function is_dev_mode(): bool {
 		$settings = $this->get_settings();
 		if ( isset( $settings['dev_mode'] ) && $settings['dev_mode'] ) {
 			return true;

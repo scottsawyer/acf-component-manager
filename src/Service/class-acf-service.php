@@ -191,13 +191,13 @@ class AcfService {
 	/**
 	 * Get acf post by key.
 	 *
-	 * @param string $post_type The ACF post type.
 	 * @param string $key       The ACF key.
+	 * @param string $post_type The ACF post type.
 	 *
 	 * @return \WP_Post|bool
 	 *   The post if found.
 	 */
-	public function get_acf_post_by_key( string $post_type, string $key ): \WP_Post|bool {
+	public function get_acf_post_by_key( string $key, string $post_type ): \WP_Post|bool {
 		$args = array(
 			'post_name' => $key,
 			'post_type' => $post_type,

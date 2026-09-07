@@ -68,18 +68,10 @@ class SyncService {
 	public function sync_components( array $components ): void {
 
 		if ( ! empty( $components ) ) {
-			print '<pre>';
-			print_r( $components );
-			print '</pre>';
 			foreach ( $components as $hash => $component ) {
 				$needs_sync = false;
 				$db_post = null;
 				$post_type = null;
-
-				print '<pre>';
-				print 'Component: <br>';
-				print_r( $component );
-				print '</pre>';
 
 				$json = $this->acfService->get_acf_json( $component['file_path'] );
 
@@ -112,43 +104,26 @@ class SyncService {
 				} else {
 					$needs_sync = true;
 				}
-				if ( $needs_sync && $post_type == 'acf-post-type' ) {
-					$json = acf_prepare_post_type_for_import( $json, $post_type );
-					//$valid = acf_validate_post_type( $prepared );
-					$json['local']  = 'json';
-				  $json['local_file'] = $component['file_path'];
+				if ( $needs_sync ) {
+					switch ( $post_type ) {
+						case 'acf-post-type':
 
-					print '<pre>';
-					print '$JSON<BR>';
-					print_r($json);
-					print '</pre>';
-					$success = acf_add_local_internal_post_type( $json, $post_type );
-					$success = false;
-					if ( $success ) {
-						print 'Did it?';
-					}
-					else {
-						print 'nope';
-						// Disable "Local JSON" controller to prevent the .json file from being modified during import.
-						acf_update_setting( 'json', false );
-						$prepared = acf_prepare_internal_post_type_for_import( $json, $post_type );
-						print '<pre>';
-						print '$prepared<br>';
-						print_r( $prepared );
-						print '</pre>';
-						//$store = acf_get_local_store('', $post_type)->get( $key );
-						//$result = acf_import_internal_post_type( $json, $post_type );
-						print '<pre>';
-						print '$result: <br>';
-						//print_r($result);
-						print '</pre>';
-					}
+							$json               = acf_prepare_post_type_for_import( $json );
+							$json['local']      = 'json';
+							$json['local_file'] = $component['file_path'];
 
+							$success = acf_import_internal_post_type( $json, $post_type );
+							break;
+						case 'acf-taxonomy':
+
+							break;
+						case 'acf-ui-options-page':
+							break;
+						case 'acf-field-group':
+							break;
+					}
 				}
 			}
-		}
-		else {
-			print 'Empty components';
 		}
 	}
 
@@ -156,12 +131,12 @@ class SyncService {
 	 * Component needs db sync.
 	 *
 	 * @since 0.0.9
-	 * @param string   $modified The timestamp when the JSON was last modified.
+	 * @param int      $modified The timestamp when the JSON was last modified.
 	 * @param \WP_Post $post     The ACF post.
 	 *
 	 * @return bool
 	 */
-	protected function should_sync_component( string $modified, \WP_Post $post ): bool {
+	protected function should_sync_component( int $modified, \WP_Post $post ): bool {
 		$need_sync = false;
 		// WordPress stores this as a 'YYYY-MM-DD HH:MM:SS' string.
 		$db_modified_date = ! empty( $post->post_modified_gmt ) ? $post->post_modified_gmt : $db_group->post_modified;

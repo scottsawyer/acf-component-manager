@@ -16,12 +16,21 @@ if ( ! defined( 'WPINC' ) ) {
 
 use AcfComponentManager\Controller\ComponentManager;
 use AcfComponentManager\Controller\SettingsManager;
+use AcfComponentManager\Service\ComponentService;
 use AcfComponentManager\Service\SourceService;
 
 /**
  * Contains Upgrader class.
  */
 class Upgrader {
+
+	/**
+	 * AcfComponentManager\Service\ComponentService definition.
+	 *
+	 * @since 0.0.9
+	 * @var \AcfComponentManager\Service\ComponentService
+	 */
+	protected ComponentService $componentService;
 
 	/**
 	 * AcfComponentManager\Service\SourceService definition.
@@ -82,7 +91,7 @@ class Upgrader {
 	private function load_dependencies() {
 
 		$this->noticeManager = new NoticeManager();
-		$this->componentManager = new ComponentManager();
+		$this->componentService = new ComponentService();
 		$this->settingsManager = new SettingsManager();
 		$this->sourceService = new SourceService();
 	}
@@ -194,7 +203,7 @@ class Upgrader {
 			if ( ! empty( $new_source ) ) {
 				$this->sourceService->set_sources( array( $new_source['source_id'] => $new_source ) );
 				// Get any stored components, add the new source key.
-				$components = $this->componentManager->get_stored_components();
+				$components = $this->componentService->get_stored_components();
 
 				if ( ! empty( $components ) ) {
 					foreach ( $components as $component ) {
@@ -202,7 +211,7 @@ class Upgrader {
 						$component['source_name'] = $new_source['source_name'];
 					}
 
-					$this->componentManager->set_stored_components( $components );
+					$this->componentService->set_stored_components( $components );
 				}
 			}
 		}

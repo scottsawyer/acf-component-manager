@@ -6,6 +6,8 @@
  * @package acf-component-manager.
  */
 
+declare( strict_types=1 );
+
 namespace AcfComponentManager\Service;
 
 // If this file is called directly, short.

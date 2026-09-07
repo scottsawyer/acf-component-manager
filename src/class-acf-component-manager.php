@@ -7,6 +7,8 @@
  * @since 0.0.1
  */
 
+declare( strict_types=1 );
+
 namespace AcfComponentManager;
 
 // If this file is called directly, short.
@@ -33,7 +35,7 @@ class AcfComponentManager {
 	 * @since 0.0.1
 	 * @var string $plugin_name
 	 */
-	protected $plugin_name;
+	protected string $plugin_name;
 
 	/**
 	 * Version
@@ -41,7 +43,7 @@ class AcfComponentManager {
 	 * @since 0.0.1
 	 * @var string $version
 	 */
-	protected $version;
+	protected string $version;
 
 	/**
 	 * Plugin file name
@@ -49,7 +51,7 @@ class AcfComponentManager {
 	 * @since 0.0.1
 	 * @var string $plugin_file_name
 	 */
-	protected $plugin_file_name;
+	protected string $plugin_file_name;
 
 	/**
 	 * RateCalculator\Admin definition.
@@ -58,7 +60,7 @@ class AcfComponentManager {
 	 * @since 0.0.1
 	 * @access protected
 	 */
-	protected $admin;
+	protected Admin $admin;
 
 	/**
 	 * AcfComponentManager\Loader definition.
@@ -67,7 +69,7 @@ class AcfComponentManager {
 	 * @since 0.0.1
 	 * @access protected
 	 */
-	protected $loader;
+	protected Loader $loader;
 
 	/**
 	 * AcfComponentManager\Controller\ComponentManager definition.
@@ -76,7 +78,7 @@ class AcfComponentManager {
 	 *
 	 * @since 0.0.1
 	 */
-	protected $componentManager;
+	protected ComponentManager $componentManager;
 
 	/**
 	 * AcfComponentManager\Controller\SettingsManager definition.
@@ -85,7 +87,7 @@ class AcfComponentManager {
 	 *
 	 * @since 0.0.1
 	 */
-	protected $settingsManager;
+	protected SettingsManager $settingsManager;
 
 	/**
 	 * AcfComponentManager\Controller\SourceManager definition.
@@ -94,35 +96,35 @@ class AcfComponentManager {
 	 *
 	 * @since 0.0.7
 	 */
-	protected $sourceManager;
+	protected SourceManager $sourceManager;
 
 	/**
 	 * AcfComponentManager\NoticeManager definition.
 	 *
 	 * @var \AcfComponentManager\NoticeManager
 	 */
-	protected $noticeManager;
+	protected NoticeManager $noticeManager;
 
 	/**
 	 * AcfComponentManager\Controller\DashboardManager definition.
 	 *
 	 * @var \AcfComponentManager\Controller\DashboardManager
 	 */
-	protected $dashboardManager;
+	protected DashboardManager $dashboardManager;
 
 	/**
 	 * AcfComponentManager\Controller\ToolsManager definition.
 	 *
 	 * @var \AcfComponentManager\Controller\ToolsManager
 	 */
-	protected $toolsManager;
+	protected ToolsManager $toolsManager;
 
 	/**
 	 * AcfComponentManager\Upgrader definition.
 	 *
 	 * @var \AcfComponentManager\Upgrader
 	 */
-	protected $upgrader;
+	protected Upgrader $upgrader;
 
 	/**
 	 * Options.
@@ -131,7 +133,7 @@ class AcfComponentManager {
 	 * @access protected
 	 * @var array $options
 	 */
-	protected $options;
+	protected array $options;
 
 	/**
 	 * Constructs a new Acf_Component_Manager object.
@@ -161,8 +163,10 @@ class AcfComponentManager {
 	 *
 	 * @since 0.0.1
 	 * @access private
+	 *
+	 * @return void
 	 */
-	private function load_dependencies() {
+	private function load_dependencies(): void {
 
 		$this->admin = new Admin();
 		$this->loader = new Loader();
@@ -180,8 +184,10 @@ class AcfComponentManager {
 	 *
 	 * @since 0.0.7
 	 * @access protected
+	 *
+	 * @return void
 	 */
-	protected function check_updates() {
+	protected function check_updates(): void {
 		$available_updates = $this->upgrader->get_upgrades();
 		if ( ! empty( $available_updates ) ) {
 			$this->upgrader->run_upgrades( $available_updates );
@@ -195,7 +201,7 @@ class AcfComponentManager {
 	 *
 	 * @return array The plugin options.
 	 */
-	public function get_options() {
+	public function get_options(): array {
 
 		$options = array();
 		return $options;
@@ -206,8 +212,9 @@ class AcfComponentManager {
 	 *
 	 * @since 0.0.1
 	 * @access private
+	 * @return void
 	 */
-	private function define_admin_hooks() {
+	private function define_admin_hooks(): void {
 
 		$plugin_admin = $this->admin;
 		$this->loader->add_action( 'admin_menu', $plugin_admin, 'add_admin_menu' );
@@ -254,11 +261,12 @@ class AcfComponentManager {
 	}
 
 	/**
-	 * Run the loader to execute all of the hooks with WordPress.
+	 * Run the loader to execute all WordPress hooks.
 	 *
 	 * @since    0.0.1
+	 * @return void
 	 */
-	public function run() {
+	public function run(): void {
 		$this->loader->run();
 	}
 
@@ -270,7 +278,7 @@ class AcfComponentManager {
 	 *
 	 * @return    string    The name of the plugin.
 	 */
-	public function get_plugin_name() {
+	public function get_plugin_name(): string {
 		return $this->plugin_name;
 	}
 
@@ -281,7 +289,7 @@ class AcfComponentManager {
 	 *
 	 * @return   \AcfComponentManager\Loader    Orchestrates the hooks of the plugin.
 	 */
-	public function get_loader() {
+	public function get_loader(): Loader {
 		return $this->loader;
 	}
 
@@ -292,7 +300,7 @@ class AcfComponentManager {
 	 *
 	 * @return    string    The version number of the plugin.
 	 */
-	public function get_version() {
+	public function get_version(): string {
 		return $this->version;
 	}
 }

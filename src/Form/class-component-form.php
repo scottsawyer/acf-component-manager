@@ -7,6 +7,8 @@
  * @since 0.0.1
  */
 
+declare( strict_types=1 );
+
 namespace AcfComponentManager\Form;
 
 // If called directly, short.
@@ -23,8 +25,10 @@ class ComponentForm extends FormBase {
 	 * Provides the ComponentForm form.
 	 *
 	 * @param array $components An array of theme components.
+	 *
+	 * @return void
 	 */
-	public function form( array $components ) {
+	public function form( array $components ): void {
 		?>
 		<form method="post" action="<?php print $this->get_form_url(); ?>">
 			<?php wp_nonce_field( 'acf_component_manager', 'save' ); ?>
@@ -77,6 +81,11 @@ class ComponentForm extends FormBase {
 								name="source_name[<?php print $component_properties['hash']; ?>]"
 								value="<?php print $component_properties['source_name']; ?>"
 							>
+							<input
+								type="hidden"
+								name="modified[<?php print $component_properties['hash'] ?? ''; ?>"
+								value="<?php print $component_properties['modified'] ?? ''; ?>"
+							>
 						</td>
 						<?php
 						if ( isset( $component_properties['files'] ) ) {
@@ -108,6 +117,7 @@ class ComponentForm extends FormBase {
 										>
 										<?php print $component_properties['files'][0]['key']; ?>
 									</td>
+
 									<td>
 										<input
 											type="checkbox"

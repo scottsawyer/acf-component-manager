@@ -20,10 +20,11 @@ function acf_component_manager_autoloader( $class ) {
 	$namespace = 'AcfComponentManager';
 
 	if ( strpos( $class, $namespace ) !== 0 ) {
+
 		return;
 	}
 
-	$class = str_replace( $namespace, '', $class );
+	$class = trim( str_replace( $namespace, '', $class ), '\\' );
 	$class_parts = explode( '\\', $class );
 	$last_index = count( $class_parts ) - 1;
 	$caps = '/(?=[A-Z])/';
@@ -32,11 +33,9 @@ function acf_component_manager_autoloader( $class ) {
 	$class_parts[ $last_index ] = strtolower( $class_file_name );
 	$class = implode( DIRECTORY_SEPARATOR, $class_parts );
 
-	$path = ACF_COMPONENT_MANAGER_PATH . 'src' . $class;
+	$path = ACF_COMPONENT_MANAGER_PATH . 'src' . DIRECTORY_SEPARATOR . $class;
 
 	if ( file_exists( $path ) ) {
 		require_once $path;
-	} else {
-		die( $path );
 	}
 }

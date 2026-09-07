@@ -107,7 +107,6 @@ class SyncService {
 				if ( $needs_sync ) {
 					switch ( $post_type ) {
 						case 'acf-post-type':
-
 							$json               = acf_prepare_post_type_for_import( $json );
 							$json['local']      = 'json';
 							$json['local_file'] = $component['file_path'];
@@ -115,7 +114,6 @@ class SyncService {
 							$success = acf_import_internal_post_type( $json, $post_type );
 							break;
 						case 'acf-taxonomy':
-
 							break;
 						case 'acf-ui-options-page':
 							break;
@@ -156,7 +154,6 @@ class SyncService {
 	 * @return boolean
 	 */
 	protected function sync_component_to_db( array $component, ?\WP_Post $post = null ): bool {
-
+		return false;
 	}
-
 }

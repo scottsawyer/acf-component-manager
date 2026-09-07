@@ -52,7 +52,7 @@ class AcfService {
 			$acf_post_types = $this->get_acf_post_types();
 			$acf_taxonomies = $this->get_acf_taxonomies();
 			$acf_option_pages = $this->get_acf_option_pages();
-			$acf_posts =  array_merge( $acf_field_groups, $acf_post_types, $acf_taxonomies, $acf_option_pages );
+			$acf_posts = array_merge( $acf_field_groups, $acf_post_types, $acf_taxonomies, $acf_option_pages );
 			set_transient( 'acf_posts', $acf_posts, HOUR_IN_SECONDS );
 		}
 		return $acf_posts;

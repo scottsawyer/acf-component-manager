@@ -85,7 +85,7 @@ class ComponentService {
 	 */
 	public function get_stored_components(): array {
 
-		if ( false === ( $components = get_transient( STORED_COMPONENTS_OPTION_NAME ) ) ) {
+		if ( ( $components = get_transient( STORED_COMPONENTS_OPTION_NAME ) ) === false) {
 
 			$stored_components = get_option( STORED_COMPONENTS_OPTION_NAME );
 
@@ -95,7 +95,6 @@ class ComponentService {
 			} else {
 				return array();
 			}
-
 		}
 		if ( ! is_array( $components ) ) {
 			$components = unserialize( $components );
@@ -160,7 +159,7 @@ class ComponentService {
 	 */
 	public function get_discovered_components(): array {
 
-		if ( false === ( $components = get_transient( self::DISCOVERED_COMPONENTS ) ) ) {
+		if ( ( $components = get_transient( self::DISCOVERED_COMPONENTS ) ) === false ) {
 			$sources = $this->sourceService->get_sources();
 			if ( empty( $sources ) ) {
 				return array();
@@ -230,8 +229,11 @@ class ComponentService {
 		if ( empty( $enabled_components ) ) {
 			return array();
 		}
-		return array_filter( $enabled_components, function ( $item ) {
-			return $item['auto_sync'] == true;
-		} );
+		return array_filter(
+			$enabled_components,
+			function ( $item ) {
+				return true == $item['auto_sync'];
+			}
+		);
 	}
 }

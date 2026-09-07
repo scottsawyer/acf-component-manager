@@ -92,7 +92,9 @@ function acf_component_manager_run() {
 	$plugin->run();
 }
 
-add_action( 'plugins_loaded', function() {
-	acf_component_manager_run();
-} );
-
+add_action(
+	'plugins_loaded',
+	function() {
+		acf_component_manager_run();
+	}
+);

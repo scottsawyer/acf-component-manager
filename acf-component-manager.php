@@ -94,7 +94,7 @@ function acf_component_manager_run() {
 
 add_action(
 	'plugins_loaded',
-	function() {
+	function () {
 		acf_component_manager_run();
 	}
 );

@@ -85,7 +85,8 @@ class ComponentService {
 	 */
 	public function get_stored_components(): array {
 
-		if ( ( $components = get_transient( STORED_COMPONENTS_OPTION_NAME ) ) === false) {
+		$components = get_transient( STORED_COMPONENTS_OPTION_NAME );
+		if ( false === $components ) {
 
 			$stored_components = get_option( STORED_COMPONENTS_OPTION_NAME );
 
@@ -158,8 +159,8 @@ class ComponentService {
 	 * @return array The discovered components.
 	 */
 	public function get_discovered_components(): array {
-
-		if ( ( $components = get_transient( self::DISCOVERED_COMPONENTS ) ) === false ) {
+		$components = get_transient( self::DISCOVERED_COMPONENTS );
+		if ( false === $components ) {
 			$sources = $this->sourceService->get_sources();
 			if ( empty( $sources ) ) {
 				return array();

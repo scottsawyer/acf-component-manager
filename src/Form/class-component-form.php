@@ -53,7 +53,6 @@ class ComponentForm extends FormBase {
 					<th><?php print __( 'Component source', 'acf-component-manager' ); ?></th>
 					<th><?php print __( 'File name', 'acf-component-manager' ); ?></th>
 					<th><?php print __( 'Key', 'acf-component-manager' ); ?></th>
-					<th><?php print __( 'Auto-sync', 'acf-component-manager' ); ?></th>
 					<th><?php print __( 'Enabled', 'acf-component-manager' ); ?></th>
 				</tr>
 				</thead>
@@ -117,18 +116,6 @@ class ComponentForm extends FormBase {
 											value="<?php print $component_properties['files'][0]['key']; ?>"
 										>
 										<?php print $component_properties['files'][0]['key']; ?>
-									</td>
-									<td>
-										<input
-										   type="checkbox"
-										   name="auto_sync[<?php print $component_properties['hash']; ?>]"
-										   id="<?php print $component_properties['hash']; ?>-autosync"
-										   value="1"
-										   <?php isset( $component_properties['auto_sync'] ) ? checked( $component_properties['auto_sync'], true ) : print ''; ?>
-										>
-										<label for="<?php print $component_properties['hash']; ?>-autosync">
-											   <?php _e( 'Auto sync', 'acf-component-manager' ); ?>
-										</label>
 									</td>
 
 									<td>

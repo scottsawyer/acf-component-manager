@@ -222,7 +222,6 @@ class AcfComponentManager {
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_styles' );
 
 		$component_manager = $this->componentManager;
-		$this->loader->add_action( 'init', $component_manager, 'sync_components' );
 		$this->loader->add_action( 'acf_component_manager_render_page_manage_components', $component_manager, 'render_page', 10, 2 );
 		$this->loader->add_action( 'acf_component_manager_dashboard', $component_manager, 'dashboard', 10 );
 		$this->loader->add_action( 'acf_component_manager_tools', $component_manager, 'tools', 10, 2 );

@@ -63,12 +63,6 @@ class ComponentView extends ViewBase {
 						<h3><?php print __( 'Field group key', 'acf-component-manager' ); ?></h3>
 					</th>
 					<th>
-						<h3><?php print __( 'Auto sync', 'acf-component-manager' ); ?></h3>
-					</th>
-					<th>
-						<h3><?php print __( 'Sync date', 'acf-component-manager' ); ?></h3>
-					</th>
-					<th>
 						<h3><?php print __( 'Enabled', 'acf-component-manager' ); ?></h3>
 					</th>
 				</tr>
@@ -87,14 +81,6 @@ class ComponentView extends ViewBase {
 					</td>
 					<td>
 						<?php print $component['key']; ?>
-					</td>
-					<td>
-
-					</td>
-					<td>
-						<?php
-						print $component['auto_sync'] ? __( 'Enabled', 'acf-component-manager' ) : '';
-						?>
 					</td>
 					<td>
 						<?php
@@ -152,9 +138,6 @@ class ComponentView extends ViewBase {
 						<h3><?php print __( 'Status', 'acf-component-manager' ); ?></h3>
 					</th>
 					<th>
-						<h3><?php print __( 'Modified', 'acf-component-manager' ); ?></h3>
-					</th>
-					<th>
 						<h3><?php print __( 'Post id', 'acf-component-manager' ); ?></h3>
 					</th>
 				</tr>
@@ -170,9 +153,6 @@ class ComponentView extends ViewBase {
 					</td>
 					<td>
 						<?php print $component['status']; ?>
-					</td>
-					<td>
-						<?php print $component['modified']; ?>
 					</td>
 					<td>
 						<?php print $component['id']; ?>
